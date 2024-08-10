@@ -24,12 +24,16 @@ def start(update: Update, context: CallbackContext):
         [InlineKeyboardButton("Adicionar ao grupo", callback_data='add_to_group')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text('Escolha uma opção:', reply_markup=reply_markup)
+    if update.message:
+        update.message.reply_text('Escolha uma opção:', reply_markup=reply_markup)
+    elif update.callback_query:
+        update.callback_query.message.edit_text('Escolha uma opção:', reply_markup=reply_markup)
 
 def add_numbers(update: Update, context: CallbackContext):
     keyboard = [
         [InlineKeyboardButton("Adicionar", callback_data='add_number')],
-        [InlineKeyboardButton("Voltar", callback_data='start')]
+        [InlineKeyboardButton("Voltar", callback_data='start')],
+        [InlineKeyboardButton("Menu", callback_data='start')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.callback_query.message.reply_text(
@@ -44,15 +48,15 @@ def add_number(update: Update, context: CallbackContext):
 def handle_number(update: Update, context: CallbackContext):
     number = update.message.text
     if number in numbers:
-        update.message.reply_text('Número já cadastrado.')
+        update.message.reply_text('Número já cadastrado.', reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Menu", callback_data='start')]]))
     else:
         numbers[number] = []
-        update.message.reply_text('Número adicionado.')
-    start(update, context)
+        update.message.reply_text('Número adicionado.', reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Menu", callback_data='start')]]))
     return 'START'
 
 def add_members(update: Update, context: CallbackContext):
-    update.callback_query.message.reply_text('Quantos membros deseja adicionar (máx. 50 por número)?')
+    update.callback_query.message.reply_text('Quantos membros deseja adicionar (máx. 50 por número)?',
+                                             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Menu", callback_data='start')]]))
     return 'WAITING_FOR_MEMBER_COUNT'
 
 def handle_member_count(update: Update, context: CallbackContext):
@@ -61,39 +65,45 @@ def handle_member_count(update: Update, context: CallbackContext):
         count = int(update.message.text)
         if count <= 50:
             member_count = count
-            update.message.reply_text('Quantos membros deseja adicionar ao grupo?')
+            update.message.reply_text('Quantos membros deseja adicionar ao grupo?',
+                                      reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Menu", callback_data='start')]]))
             return 'WAITING_FOR_GROUP_NAME'
         else:
-            update.message.reply_text('O número máximo é 50.')
+            update.message.reply_text('O número máximo é 50.',
+                                      reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Menu", callback_data='start')]]))
             return 'WAITING_FOR_MEMBER_COUNT'
     except ValueError:
-        update.message.reply_text('Por favor, envie um número válido.')
+        update.message.reply_text('Por favor, envie um número válido.',
+                                  reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Menu", callback_data='start')]]))
         return 'WAITING_FOR_MEMBER_COUNT'
 
 def search_groups(update: Update, context: CallbackContext):
-    update.callback_query.message.reply_text('Envie o nome dos grupos (máx. 5), separados por vírgula:')
+    update.callback_query.message.reply_text('Envie o nome dos grupos (máx. 5), separados por vírgula:',
+                                             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Menu", callback_data='start')]]))
     return 'WAITING_FOR_GROUP_NAMES'
 
 def handle_group_names(update: Update, context: CallbackContext):
     group_names = update.message.text.split(',')
     if len(group_names) > 5:
-        update.message.reply_text('Você pode adicionar no máximo 5 grupos.')
+        update.message.reply_text('Você pode adicionar no máximo 5 grupos.',
+                                  reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Menu", callback_data='start')]]))
     else:
         global groups_to_search
         groups_to_search = [name.strip() for name in group_names]
-        update.message.reply_text('Grupos cadastrados para busca: ' + ', '.join(groups_to_search))
-    start(update, context)
+        update.message.reply_text('Grupos cadastrados para busca: ' + ', '.join(groups_to_search),
+                                  reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Menu", callback_data='start')]]))
     return 'START'
 
 def add_to_group(update: Update, context: CallbackContext):
-    update.callback_query.message.reply_text('Envie o nome do grupo para adicionar membros:')
+    update.callback_query.message.reply_text('Envie o nome do grupo para adicionar membros:',
+                                             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Menu", callback_data='start')]]))
     return 'WAITING_FOR_GROUP_NAME'
 
 def handle_group_name(update: Update, context: CallbackContext):
     global group_to_add
     group_to_add = update.message.text
-    update.message.reply_text(f'Grupo {group_to_add} registrado para adicionar membros.')
-    start(update, context)
+    update.message.reply_text(f'Grupo {group_to_add} registrado para adicionar membros.',
+                              reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Menu", callback_data='start')]]))
     return 'START'
 
 def button(update: Update, context: CallbackContext):
@@ -136,12 +146,14 @@ def handle_add_members(update: Update, context: CallbackContext):
                 if user_id not in active_members:
                     add_members_to_group(bot, chat.id, [user_id])
         
-        update.message.reply_text('Membros adicionados com sucesso.')
+        update.message.reply_text('Membros adicionados com sucesso.',
+                                  reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Menu", callback_data='start')]]))
     else:
-        update.message.reply_text('Nenhum grupo registrado ou número de membros inválido.')
+        update.message.reply_text('Nenhum grupo registrado ou número de membros inválido.',
+                                  reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Menu", callback_data='start')]]))
 
 def main():
-    updater = Updater("7334268988:AAG-AQs4xa12rKls8DtRCad3JCuIZrORZxQ", use_context=True)
+    updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler('start', start))
